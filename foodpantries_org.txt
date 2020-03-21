@@ -2,7 +2,9 @@ const entries = $('h2 a')
 const providers = []
 
 entries.map(i => {
-  providers.push({provider: entries[i].text,website: entries[i].href
-  });
+  providers.push({provider: entries[i].text, link: entries[i].href});
 });
+
+$('#seeaddress').click()
+
 
