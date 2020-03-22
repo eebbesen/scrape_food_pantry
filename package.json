@@ -2,8 +2,9 @@
   "name": "scrape_food_pantries",
   "version": "1.0.0",
   "description": "Get food pantry data",
-  "main": "index.js",
+  "main": "index.mjs",
   "scripts": {
+    "scrape": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

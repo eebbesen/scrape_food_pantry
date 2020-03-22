@@ -1,0 +1,10 @@
+const entries = $('h2 a')
+const providers = []
+
+entries.map(i => {
+  providers.push({provider: entries[i].text, link: entries[i].href});
+});
+
+$('#seeaddress').click()
+
+https://www.foodpantries.org/ci/mn-st_paul
