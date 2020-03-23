@@ -1,27 +1,62 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
+
+require('events').EventEmitter.defaultMaxListeners = 15;
 
 
-async function getPage(url) {
-  let res = await axios.get(url);
-  return res.data
-};
-
-function parse(data) {
-  const $ = cheerio.load(data);
-  const entries = $('h2 a');
-  const providers = [];
-
-  entries.map(i => {
-    console.log('CCCCCCCC', entries[i].attribs);
-    const entry = entries[i].attribs;
-    providers.push({provider: entry.title, link: entry.href});
+async function getProviderData(url) {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(url);
+  await page.waitForSelector('.blog-list');
+  const page_data = await page.evaluate(() => {
+    const results = [];
+    const items = document.querySelectorAll('.blog-list > h2 a');
+    items.forEach(i => {
+      results.push({link: i.getAttribute('href'), provider: i.innerText})
+    });
+    return results;
   });
 
-  return providers;
-}
+  await browser.close();
+
+  return page_data;
+};
+
+async function getAddress(provider) {
+  const browser = await puppeteer.launch();
+  let address = 'error';
+
+  try {
+    const pg = await browser.newPage();
+    await pg.goto(provider.link);
+    await pg.waitForSelector('.leaflet-popup-content');
+    address = await pg.evaluate(() => {
+      const a = document.querySelectorAll('.leaflet-popup-content')[0];
+      return a.textContent;
+    });
+  } catch (err) {
+    console.log('Error getting address for ' + JSON.stringify(provider));
+  }
+
+  await browser.close();
+
+  return Object.assign({address: address}, provider);
+};
+
+async function decorateProviders(providers) {
+  const promises = providers.map(async p => {
+    const address = await getAddress(p);
+    return address;
+  });
+  const resolved = await Promise.all(promises);
+  return resolved;
+};
 
 exports.scrape = async (url) => {
-  const data = await getPage(url);
-    return parse(data);
+  const providers = await getProviderData(url);
+  const decorated_providers = await decorateProviders(providers);
+
+  return decorated_providers;
 };
