@@ -1,49 +1,37 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const puppeteer = require('puppeteer');
-
-require('events').EventEmitter.defaultMaxListeners = 15;
-
 
 async function getProviderData(url) {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto(url);
-  await page.waitForSelector('.blog-list');
-  const page_data = await page.evaluate(() => {
-    const results = [];
-    const items = document.querySelectorAll('.blog-list > h2 a');
-    items.forEach(i => {
-      results.push({link: i.getAttribute('href'), provider: i.innerText})
-    });
-    return results;
+  const res = await axios.get(url);
+  const $ = cheerio.load(res.data);
+  const entries = $('h2 a');
+  const providers = [];
+
+  entries.map(i => {
+    const entry = entries[i].attribs;
+    providers.push({provider: entry.title, link: entry.href});
   });
 
-  await browser.close();
-
-  return page_data;
+  return providers;
 };
 
 async function getAddress(provider) {
-  const browser = await puppeteer.launch();
-  let address = 'error';
+  const res = await axios.get(provider.link);
+  const $ = cheerio.load(res.data);
+  const entries = $('.container.content .row .span8 script');
 
+  let addressJson = 'error';
   try {
-    const pg = await browser.newPage();
-    await pg.goto(provider.link);
-    await pg.waitForSelector('.leaflet-popup-content');
-    address = await pg.evaluate(() => {
-      const a = document.querySelectorAll('.leaflet-popup-content')[0];
-      return a.textContent;
-    });
+    addressJson = JSON.parse(entries[0].children[0].data.replace(/\n/g, '').replace("\\'", ''));
   } catch (err) {
+    console.log('Error parsing JSON for\n', entries[0].children[0].data);
     console.log(err);
-    console.log('Error getting address for ' + JSON.stringify(provider));
   }
 
-  await browser.close();
+  const fullAddress = addressJson.address;
+  const address = [fullAddress.streetAddress, fullAddress.addressLocality, fullAddress.addressRegion, fullAddress.postalCode].join(',');
 
-  return Object.assign({address: address}, provider);
+  return Object.assign({address: address, phone: addressJson.telephone, description: addressJson.description}, provider);
 };
 
 async function decorateProviders(providers) {
@@ -52,8 +40,8 @@ async function decorateProviders(providers) {
     return address;
   });
 
-  // const resolved = await Promise.all(promises);
-  const resolved = await throttlePromises(promises);
+  const resolved = await Promise.all(promises);
+  // const resolved = await throttlePromises(promises);
   return resolved;
 };
 
