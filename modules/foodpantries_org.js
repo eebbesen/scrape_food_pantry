@@ -41,21 +41,7 @@ async function decorateProviders(providers) {
   });
 
   const resolved = await Promise.all(promises);
-  // const resolved = await throttlePromises(promises);
   return resolved;
-};
-
-async function throttlePromises(promises) {
-  const batchSize = 6;
-  const resolved = [];
-
-  while(promises.length > 0) {
-    const to_resolve = promises.splice(0, batchSize);
-    const lr = await Promise.all(to_resolve);
-    resolved.push(lr);
-  }
-
-  return resolved.flat();
 };
 
 exports.scrape = async (url) => {
