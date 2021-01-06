@@ -7,7 +7,7 @@ npm install
 
 # Run
 ```bash
-npm run index.mjs <URL>
+npm run scrape <URL>
 ```
 
 For example, the following will get foodpantries.org's entries for Saint Paul, MN:
